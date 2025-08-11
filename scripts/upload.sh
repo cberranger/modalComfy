@@ -1,7 +1,8 @@
 #!/bin/bash
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$HOME/.modal_volume_cli"
-PYTHON_SCRIPT="modal_uploader.py"
+PYTHON_SCRIPT="${SCRIPT_DIR}/modal_uploader.py"
 
 # Ask for volume name once and save it
 if [ ! -f "$CONFIG_FILE" ]; then
@@ -14,11 +15,10 @@ fi
 
 # Ensure Python helper exists
 if [ ! -f "$PYTHON_SCRIPT" ]; then
-cat <<EOF > $PYTHON_SCRIPT
+cat <<'PYEOF' > "$PYTHON_SCRIPT"
 import sys
 import modal
 import os
-from pathlib import Path
 
 volume_name = sys.argv[1]
 local_files = sys.argv[2].split(",")
@@ -38,7 +38,7 @@ def put_files():
         print(f"Uploaded: {local_path} -> {remote_path}")
 
 put_files()
-EOF
+PYEOF
 fi
 
 # Main menu
@@ -54,7 +54,7 @@ select opt in "list" "put" "rm" "quit"; do
             read -p "Enter comma-separated local paths: " LOCAL_PATHS
             read -p "Enter remote path (prefix, e.g. models/ or /): " REMOTE_PATH
             echo "Uploading to volume..."
-            modal run $PYTHON_SCRIPT $VOLUME_NAME "$LOCAL_PATHS" "$REMOTE_PATH"
+            modal run "$PYTHON_SCRIPT" $VOLUME_NAME "$LOCAL_PATHS" "$REMOTE_PATH"
             break
             ;;
         "rm")
