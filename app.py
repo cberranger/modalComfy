@@ -114,6 +114,10 @@ class ComfyUIServer:
         web_app = FastAPI()
         client = httpx.AsyncClient(base_url="http://127.0.0.1:8188", timeout=300.0)
 
+        @web_app.on_event("shutdown")
+        async def shutdown_event():
+            await client.aclose()
+
         @web_app.websocket("/ws")
         async def websocket_proxy(websocket: WebSocket):
             await websocket.accept()
@@ -121,17 +125,30 @@ class ComfyUIServer:
             try:
                 async with websockets.connect(uri) as comfyui_ws:
                     async def forward_to_comfyui():
-                        while True:
-                            data = await websocket.receive_text()
-                            await comfyui_ws.send(data)
+                        try:
+                            while True:
+                                data = await websocket.receive_text()
+                                await comfyui_ws.send(data)
+                        except websockets.exceptions.ConnectionClosed:
+                            pass
+
                     async def forward_to_client():
-                        while True:
-                            data = await comfyui_ws.recv()
-                            await websocket.send_text(data)
-                    await asyncio.gather(
-                        forward_to_comfyui(),
-                        forward_to_client()
+                        try:
+                            while True:
+                                data = await comfyui_ws.recv()
+                                await websocket.send_text(data)
+                        except websockets.exceptions.ConnectionClosed:
+                            pass
+
+                    task_to_comfyui = asyncio.create_task(forward_to_comfyui())
+                    task_to_client = asyncio.create_task(forward_to_client())
+                    done, pending = await asyncio.wait(
+                        {task_to_comfyui, task_to_client},
+                        return_when=asyncio.FIRST_COMPLETED,
                     )
+                    for task in pending:
+                        task.cancel()
+                    await asyncio.gather(*pending, return_exceptions=True)
             except Exception as e:
                 logger.error(f"WebSocket error: {e}")
             finally:
