@@ -48,14 +48,21 @@ def putfile(url: str, filename: str, subdir: str = "text_encoders"):
     full_dir = f"/storage/models/{subdir}"
     os.makedirs(full_dir, exist_ok=True)
 
-    r = requests.get(url, stream=True)
-    r.raise_for_status()
-    with open(f"{full_dir}/{filename}", "wb") as f:
-        for chunk in r.iter_content(chunk_size=8192):
-            if chunk:
-                f.write(chunk)
-
-    volume.commit()
+    try:
+        r = requests.get(url, stream=True, timeout=60)
+        r.raise_for_status()
+        with open(f"{full_dir}/{filename}", "wb") as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+    except requests.Timeout as e:
+        logger.error(f"Timeout while downloading {url}: {e}")
+        raise RuntimeError(f"Download timed out for {url}") from e
+    except requests.RequestException as e:
+        logger.error(f"Failed to download {url}: {e}")
+        raise
+    else:
+        volume.commit()
 
 @app.cls(
     image=image,
