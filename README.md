@@ -11,3 +11,15 @@ AWS_SECRET_ACCESS_KEY=<secret_key>
 Model downloader endpoint	Environment var	DOWNLOADER_URL	DOWNLOADER_URL=<https://your-model-downloader-service>
 Protected Modal HTTP calls	HTTP headers	n/a	Modal-Key=<TOKEN_ID>
 Modal-Secret=<TOKEN_SECRET>
+
+## Streamlit dashboard
+
+Run a local UI to manage your Modal deployment:
+
+```
+pip install streamlit modal
+streamlit run ui.py
+```
+
+The dashboard lets you open the ComfyUI server running on Modal and download model
+files into the shared volume.
