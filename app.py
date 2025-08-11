@@ -64,6 +64,24 @@ def putfile(url: str, filename: str, subdir: str = "text_encoders"):
     else:
         volume.commit()
 
+
+@app.function(
+    image=image,
+    volumes={"/storage": volume},
+    timeout=300,
+)
+def list_models(subdir: str = "text_encoders"):
+    """Return the list of files in a model subdirectory."""
+    import os
+
+    allowed_dirs = ["unet", "lora", "text_encoders", "vae", "diffusion_models"]
+    if subdir not in allowed_dirs:
+        raise ValueError(f"Invalid subdir: {subdir}. Choose one of {allowed_dirs}")
+
+    full_dir = f"/storage/models/{subdir}"
+    os.makedirs(full_dir, exist_ok=True)
+    return sorted(os.listdir(full_dir))
+
 @app.cls(
     image=image,
     gpu="A100",
