@@ -1,11 +1,24 @@
-import sys
+import argparse
 import modal
 import os
-from pathlib import Path
 
-volume_name = sys.argv[1]
-local_files = sys.argv[2].split(",")
-remote_dir = sys.argv[3]
+app = modal.App("modal-uploader")
+
+parser = argparse.ArgumentParser(
+    description="Upload local files to a Modal volume.",
+)
+parser.add_argument("volume_name", help="Name of the Modal persisted volume")
+parser.add_argument(
+    "local_files", help="Comma-separated list of local file paths to upload"
+)
+parser.add_argument(
+    "remote_dir", help="Directory inside the volume to copy files into"
+)
+args = parser.parse_args()
+
+volume_name = args.volume_name
+local_files = args.local_files.split(",")
+remote_dir = args.remote_dir
 
 vol = modal.Volume.persisted(volume_name)
 
@@ -20,4 +33,6 @@ def put_files():
             dst.write(src.read())
         print(f"Uploaded: {local_path} -> {remote_path}")
 
-put_files()
+
+if __name__ == "__main__":
+    put_files()
