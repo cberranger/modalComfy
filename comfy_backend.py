@@ -7,6 +7,8 @@ import httpx
 import shutil
 from fastapi.middleware.cors import CORSMiddleware
 
+comfyui_proc: subprocess.Popen | None = None
+
 app = modal.App("comfyui-backend-coldstart")
 volume = modal.Volume.from_name("comfyui-storage")
 
@@ -95,11 +97,12 @@ def comfyui_backend():
         raise RuntimeError("ComfyUI failed to start in 60s.")
 
     @app.on_event("shutdown")
-    def stop_comfyui():
+    async def stop_comfyui():
         global comfyui_proc
         if comfyui_proc:
             comfyui_proc.terminate()
             comfyui_proc.wait()
+        await client.aclose()
 
     # 3. Proxy all HTTP (and optionally WebSocket) calls to ComfyUI backend
     client = httpx.AsyncClient(base_url="http://127.0.0.1:8188", timeout=180)
