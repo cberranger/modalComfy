@@ -141,7 +141,7 @@ def comfyui_backend():
 )
 @modal.asgi_app()
 def model_downloader():
-    import fastapi, os, requests, shutil
+    import fastapi, os, requests, shutil, logging
     app = fastapi.FastAPI()
     # CORS so the ComfyUI frontend (different origin) can call this service
     app.add_middleware(
@@ -152,7 +152,7 @@ def model_downloader():
     )
 
     @app.post("/download")
-    async def download_model(request: fastapi.Request, background_tasks: fastapi.BackgroundTasks):
+    async def download_model(request: fastapi.Request):
         body = await request.json()
         url = body.get("url")
         filename = body.get("filename")
@@ -166,15 +166,20 @@ def model_downloader():
         file_path = f"{full_dir}/{filename}"
 
         def download_and_commit():
-            r = requests.get(url, stream=True)
-            r.raise_for_status()
-            with open(file_path, "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-            volume.commit()
-        background_tasks.add_task(download_and_commit)
-        return {"status": "downloading", "path": file_path}
+            try:
+                r = requests.get(url, stream=True, timeout=60)
+                r.raise_for_status()
+                with open(file_path, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+                volume.commit()
+            except requests.RequestException as e:
+                logging.error("Failed to download %s: %s", url, e)
+                raise fastapi.HTTPException(status_code=500, detail=f"Failed to download model: {e}")
+
+        download_and_commit()
+        return {"status": "downloaded", "path": file_path}
 
     return app
 
