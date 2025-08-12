@@ -2,7 +2,9 @@ import argparse
 import modal
 import os
 
-app = modal.App("modal-uploader")
+"""Upload local files to a Modal volume."""
+
+app = modal.App("volume-uploader")
 
 parser = argparse.ArgumentParser(
     description="Upload local files to a Modal volume.",

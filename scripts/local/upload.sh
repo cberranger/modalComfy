@@ -2,7 +2,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$HOME/.modal_volume_cli"
-PYTHON_SCRIPT="${SCRIPT_DIR}/modal_uploader.py"
+PYTHON_SCRIPT="${SCRIPT_DIR}/volume_uploader.py"
 
 # Ask for volume name once and save it
 if [ ! -f "$CONFIG_FILE" ]; then
@@ -19,6 +19,8 @@ cat <<'PYEOF' > "$PYTHON_SCRIPT"
 import sys
 import modal
 import os
+
+app = modal.App("volume-uploader")
 
 volume_name = sys.argv[1]
 local_files = sys.argv[2].split(",")
